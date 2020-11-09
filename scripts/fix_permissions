@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+setfacl -Rm u:9999:rwX,g:9999:rwX .
+setfacl -dRm u:9999:rwX,g:9999:rwX .

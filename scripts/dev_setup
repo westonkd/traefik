@@ -1,0 +1,97 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+require 'bundler/inline'
+require 'pp'
+
+gemfile do
+  source 'https://rubygems.org'
+  gem 'random-word', '~> 1.3'
+end
+
+class DevSetup
+  SERVICES_KEY = 'services'.freeze
+  LABEL_KEY = 'labels'.freeze
+  NETWORK_NAME = 'traefik_net'.freeze
+
+  def initialize(args)
+    @args = args
+  end
+
+  def execute
+    unless valid_args?
+      print_usage
+      return
+    end
+    
+    expose_service
+    add_network
+    save_compose_file
+  end
+
+  private
+
+  def save_compose_file
+    File.open(compose_file_path, 'w') do |fs|
+      fs.write compose_file.to_yaml
+    end
+  end
+
+  def expose_service
+    service = compose_file[SERVICES_KEY][service_name]
+    service[LABEL_KEY] ||= []
+    service[LABEL_KEY].push(*traefik_lables)
+    service[LABEL_KEY].uniq!
+  end
+
+  def add_network
+    compose_file['networks'] = {
+      'default' => {
+        'external' => {
+          'name' => NETWORK_NAME
+        }
+      }
+    }
+  end
+
+  # My setup has all containers exposed by default. To hide a container,
+  # add a "traefik.enable=true" label to it
+  def traefik_lables
+    [
+      "traefik.http.routers.#{hostname}.entrypoints=web",
+      "traefik.http.routers.#{hostname}.rule=Host(`#{hostname}.docker`)",
+      "lt.host=#{hostname}"
+    ]
+  end
+
+  def compose_file_path
+    @args[0]
+  end
+
+  def service_name
+    @args[1]
+  end
+
+  def hostname
+    @hostname ||= @args[2] || "#{RandomWord.adjs.next}_#{RandomWord.nouns.next}"
+  end
+
+  def compose_file
+    @compose_file ||= begin
+      YAML.load_file compose_file_path
+    end
+  end
+
+  def valid_args?
+    @args.length.between?(2,3) 
+  end
+
+  def print_usage
+    puts "Prepare a docker-compose.yml or override for traefik use"
+    puts "Usage: dev_setup <path_to_yml> <service_name> <hostname> (optional)"
+  end
+end
+
+
+DevSetup.new(ARGV).execute
+

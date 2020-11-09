@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+
+class Exposer
+  DEFAULT_COMPOSE_FILE = 'docker-compose.override.yml'.freeze
+  DEFAULT_SERVICE = 'web'.freeze
+  DEFAULT_PORT = 80
+  TRAEFIK_POSTFIX = '.docker'.freeze
+
+  def initialize(args)
+    @args = args
+
+    unless valid_args?
+      print_usage
+      return
+    end
+
+    @compose_filename = args[0] || DEFAULT_COMPOSE_FILE
+    @service = args[1] || DEFAULT_SERVICE
+    @port = args[2] || DEFAULT_PORT
+  end
+
+  def execute
+    expose_container host, @port
+  end
+
+  private
+
+  def expose_container(host, port)
+    puts "running: `lt -p #{port} -l #{host + TRAEFIK_POSTFIX} -s #{host}`"
+    system "lt -p #{port} -l #{host + TRAEFIK_POSTFIX} -s #{host}"
+  end
+
+  def compose_file
+    @compose_file ||= begin
+      YAML.load_file @compose_filename
+    end
+  end
+
+  def host
+    @host ||= begin
+      label = compose_file.dig('services', @service, 'labels').find do |l|
+        l.start_with? 'lt.host='
+      end
+
+      label.split('=').last
+    end
+  end
+
+  def print_usage
+    puts 'Expose a docker container via localtunnel'
+    puts 'Usage: expose <path_to_compose_file = docker-compose.override.yml> <service_name = web> <port = 80>'
+  end
+
+  def valid_args?
+    @args.count < 4
+  end
+end
+
+Exposer.new(ARGV).execute
