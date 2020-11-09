@@ -52,3 +52,14 @@ dev_setup docker-compose.override.yml web <host>
 # To expost via local tunnel
 expose
 ```
+
+### Canvas
+Canvas is a little different. The web services labels should be: 
+```
+- traefik.http.routers.canvas.entrypoints=web
+- traefik.http.routers.canvas.rule=HostRegexp(`{subdomain:[a-z]+}.canvas.docker`,`canvas.docker`, `publiccanvas.docker`)
+- lt.host=publiccanvas
+```
+
+This works for Shard one with AccountDomain host `canvas.docker` and second Shard AccountDomain host `second.canvas.docker`, etc.
+It also works for a special, third shard: a public shard. This can be shared via local tunnel. The AccountDomain host for this shard should be `publiccanvas.loca.lt`
