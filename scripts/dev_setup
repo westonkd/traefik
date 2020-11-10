@@ -60,7 +60,7 @@ class DevSetup
     [
       "traefik.http.routers.#{hostname}.entrypoints=web",
       "traefik.http.routers.#{hostname}.rule=Host(`#{hostname}.docker`)",
-      "lt.host=#{hostname}"
+      "wdransfield.servicename=<fill with service name from traefik>"
     ]
   end
 

@@ -1,12 +1,19 @@
 #!/usr/bin/env ruby
 
 require 'yaml'
+require 'bundler/inline'
+require 'uri'
+
+gemfile do
+  source 'https://rubygems.org'
+  gem 'httparty', '~> 0.13.7'
+end
 
 class Exposer
   DEFAULT_COMPOSE_FILE = 'docker-compose.override.yml'.freeze
   DEFAULT_SERVICE = 'web'.freeze
   DEFAULT_PORT = 80
-  TRAEFIK_POSTFIX = '.docker'.freeze
+  TRAEFIK_SERVICE_ENDPOINT = 'http://localhost:8080/api/http/services'.freeze
 
   def initialize(args)
     @args = args
@@ -16,45 +23,61 @@ class Exposer
       return
     end
 
-    @compose_filename = args[0] || DEFAULT_COMPOSE_FILE
-    @service = args[1] || DEFAULT_SERVICE
-    @port = args[2] || DEFAULT_PORT
+    @use_ngrok = args.count > 0
   end
 
   def execute
-    expose_container host, @port
+    expose_container local_host, DEFAULT_PORT, service_name
   end
 
   private
 
-  def expose_container(host, port)
-    puts "running: `lt -p #{port} -l #{host + TRAEFIK_POSTFIX} -s #{host}`"
-    system "lt -p #{port} -l #{host + TRAEFIK_POSTFIX} -s #{host}"
+  def expose_container(host, port, name)
+    command = if @use_ngrok
+      "ngrok http #{host}:#{port} --subdomain #{name}"
+    else
+      "running: `lt -p #{port} -l #{host} -s #{name}`"
+    end
+
+    puts "running: `#{command}`"
+    system command
   end
 
   def compose_file
     @compose_file ||= begin
-      YAML.load_file @compose_filename
+      YAML.load_file DEFAULT_COMPOSE_FILE
     end
   end
 
-  def host
-    @host ||= begin
-      label = compose_file.dig('services', @service, 'labels').find do |l|
-        l.start_with? 'lt.host='
-      end
-
-      label.split('=').last
+  def service_name
+    @service_name ||= begin
+      compose_file.dig('services', DEFAULT_SERVICE, 'labels').find do |l|
+        l.start_with? 'wdransfield.servicename'
+      end&.split('=').last
     end
+  end
+
+  def local_host
+    @local_host ||= begin
+      service_response = HTTParty.get TRAEFIK_SERVICE_ENDPOINT
+
+      service_def = JSON.parse(service_response.body).find { |s| s['name'].include? service_name }
+
+      parse_host(service_def&.dig('loadBalancer', 'servers')&.first&.dig('url'))
+    end
+  end
+
+  def parse_host(url)
+    URI.parse(url).host
   end
 
   def print_usage
     puts 'Expose a docker container via localtunnel'
-    puts 'Usage: expose <path_to_compose_file = docker-compose.override.yml> <service_name = web> <port = 80>'
+    puts 'Usage: expose <use_ngrok = false>'
   end
 
   def valid_args?
-    @args.count < 4
+    @args.count < 2
   end
 end
 
