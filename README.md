@@ -2,6 +2,8 @@
 
 My simple, local repo for Traefik local dev
 
+Warning: Code here is usually experimental. Things change a lot as I try out new workflows. For this reason scripts are not very DRY either.
+
 ## Setup
 ### 0. Create a new docker network for all your docker apps to share
 ```
@@ -49,11 +51,7 @@ docker-compose up
 # in project repor
 dev_setup docker-compose.override.yml web <host>
 
-# To expose via local tunnel
+# To expose via local tunnel (or ngrok)
 expose
 ```
 
-## TODO
-- The "expose" secript does not work that great. Currently it just uses the *.docker address as the local host for `lt`.
-  Instead, it should use the ip address that the *.docker address _route to_. This allows for an LTI tool and Canvas both
-  to be exposed via LT and talk to each other
