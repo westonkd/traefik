@@ -1,0 +1,83 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+require 'bundler/inline'
+require 'pp'
+
+class DevSetup
+  SERVICES_KEY = 'services'.freeze
+  LABEL_KEY = 'labels'.freeze
+  DEFAULT_COMPOSE_PATH = './docker-compose.override.yml'.freeze
+  DEFAULT_SERVICE = 'web'.freeze
+
+  def initialize(args)
+    @args = args
+  end
+
+  def execute
+    unless valid_args?
+      print_usage
+      return
+    end
+    
+    toggle_service_ports if app_name
+    save_compose_file
+  end
+
+  private
+
+  def toggle_service_ports
+    if services.include? traefik_label
+      services.delete traefik_label
+    else
+      services << traefik_label
+    end
+  end
+
+  def save_compose_file
+    File.open(compose_file_path, 'w') do |fs|
+      fs.write compose_file.to_yaml
+    end
+  end
+
+  def services
+    @services ||= compose_file.dig(SERVICES_KEY, service_name, LABEL_KEY)
+  end
+
+  def app_name
+    return unless services&.length > 0
+
+    services.first.split('.')[3]
+  end
+
+  def traefik_label
+    "traefik.http.services.#{app_name}.loadbalancer.server.port=3000"
+  end
+
+  def compose_file_path
+    @args[0] || DEFAULT_COMPOSE_PATH
+  end
+
+  def service_name
+    @args[1] || DEFAULT_SERVICE
+  end
+
+  def compose_file
+    @compose_file ||= begin
+      YAML.load_file compose_file_path
+    end
+  end
+
+  def valid_args?
+    @args.length < 3
+  end
+
+  def print_usage
+    puts "Toggle an application's compose override for use with `docker-compose run --rm --service-ports web bundle exec rails server -b '0.0.0.0'`"
+    puts "Usage: dev_setup <path_to_yml = ./docker-compose.override.yml> <service_name = web>"
+  end
+end
+
+
+DevSetup.new(ARGV).execute
+
