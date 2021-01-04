@@ -61,7 +61,7 @@ class Exposer
     @local_host ||= begin
       service_response = HTTParty.get TRAEFIK_SERVICE_ENDPOINT
 
-      service_def = JSON.parse(service_response.body).find { |s| s['name'].include? service_name }
+      service_def = JSON.parse(service_response.body).find { |s| s['name'].start_with? service_name }
 
       parse_host(service_def&.dig('loadBalancer', 'servers')&.first&.dig('url'))
     end
