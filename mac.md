@@ -13,7 +13,7 @@ Container-to-container communication is routed through dnsmasq and Traefik routi
 1. Create a VM with Multipass and SSH into the VM
 2. Follow the instructions [here](https://github.com/westonkd/traefik) to configure Traefik on the VM
 
-After completing these instructions, Traefik will be able to resolve hostnames that map to running Docker containers and proxy the request to those containers.
+After completing these instructions, Traefik will be able to resolve host names that map to running Docker containers and proxy the request to those containers.
 
 Next we need to point *.docker requests made on our Mac to the VM so Traefik can route to the proper containers.
 
