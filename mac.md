@@ -1,5 +1,5 @@
 # Configuring Traefik on a Mac
-This guide describes configuring Traefik on a Mac using Ubuntu Multipass to configure a VM for Docker.
+This guide describes configuring Traefik on a Mac using Ubuntu Multipass.
 
 These instructions do not cover setting up Multipass. For instructions on Multipass, see [this article](https://ubuntu.com/blog/replacing-docker-desktop-on-windows-and-mac-with-multipass).
 
