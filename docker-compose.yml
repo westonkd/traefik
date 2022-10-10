@@ -16,5 +16,5 @@ services:
 
 networks:
   default:
-    external:
-      name: $DEFAULT_NETWORK
+    external: true
+    name: test-net
